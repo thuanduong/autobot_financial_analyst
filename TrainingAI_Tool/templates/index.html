@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Trading Pro</title>
+    <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/style.css">
+</head>
+<body>
+    <div id="login-overlay" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); z-index:9999; display:flex; justify-content:center; align-items:center;">
+        <div style="background:#161b22; padding:30px; border-radius:8px; border:1px solid #30363d; text-align:center;">
+            <h2 style="margin-top:0;">🔐 ĐĂNG NHẬP HỆ THỐNG</h2>
+            <input type="text" id="inp-user" placeholder="Username" style="padding:10px; margin:5px; width:200px;"><br>
+            <input type="password" id="inp-pass" placeholder="Password" style="padding:10px; margin:5px; width:200px;"><br>
+            <button class="btn btn-buy" onclick="doLogin()" style="width:100%; margin-top:10px; padding:10px;">VÀO TRADING</button>
+            <button class="btn btn-register" onclick="doRegister()" style="width:100%; margin-top:10px; padding:10px;">ĐĂNG KÝ</button>
+        </div>
+    </div>
+    <div class="top-bar">
+        <h2>🚀 AI ARENA: <span id="sym">...</span></h2>
+        
+        <div style="display:flex; gap:15px; align-items:center;">
+            <div class="global-cap-box" style="display:flex; align-items:center; gap:5px; background:#21262d; padding:2px 10px; border-radius:4px; border:1px solid #58a6ff;">
+                <label style="color:#58a6ff; font-weight:bold;">VỐN CHUNG ($):</label>
+                <input type="number" id="inp-global-cap" value="10000" onchange="updateGlobalCapital()" 
+                       style="background:none; border:none; color:white; font-weight:bold; width:80px; text-align:right;">
+            </div>
+
+            <div style="display:flex; gap:5px">
+                <input type="text" id="symbol-input" value="GC=F" style="background:#0d1117; border:1px solid #30363d; color:white; padding:4px; width:80px;">
+                <button id="btn-symbol" class="btn btn-close" onclick="changeSymbol()" style="padding:4px 10px;">Đổi</button>
+            </div>
+            
+            <select id="tf-select" onchange="changeTimeframe()" style="background:#0d1117; color:white; border:1px solid #30363d;">
+                <option value="1m">1 Phút</option>
+                <option value="15m" selected>15 Phút</option>
+                <option value="1h">1 Giờ</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="chart-section">
+        <div id="chart-box"></div>
+    </div>
+
+    <div class="control-section">
+        
+        <div id="strategy-box" class="strategy-list-box" style="flex: 4;">
+            </div>
+
+    </div>
+    
+    <style>
+        .config-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #0d1117; padding: 5px; border-radius: 4px; margin-top: 5px; border: 1px solid #30363d;
+        }
+        .config-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #8b949e; }
+        .config-item input { 
+            width: 50px; background: #161b22; border: 1px solid #30363d; color: white; 
+            text-align: center; padding: 2px; border-radius: 2px; font-weight: bold;
+        }
+        .pnl-value { font-size: 18px; font-weight: bold; }
+    </style>
+
+    <script src="/static/main.js"></script> 
+</body>
+</html>
