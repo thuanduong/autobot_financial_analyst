@@ -2,3 +2,5 @@
 ./TrainingAI_Tool/venv
 **/__pycache__/
 __pycache__/
+*.db
+**/Lib/site-packages/
