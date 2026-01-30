@@ -1,3 +1,4 @@
 ./TrainingAI_Tool/__pycache__
 ./TrainingAI_Tool/venv
-*/__pycache__
+**/__pycache__/
+__pycache__/
