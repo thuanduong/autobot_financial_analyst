@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+
+<div class="pro-layout">
+    
+    <div class="card" style="display: flex; flex-direction: column;">
+        <div style="padding: 10px; border-bottom: 1px solid var(--border); background: var(--bg-card); font-weight: bold;">
+            📡 RADAR
+        </div>
+        <div id="radar-list" style="overflow-y: auto; flex: 1;">
+            <div style="padding: 20px; text-align: center; color: #8b949e">Loading...</div>
+        </div>
+    </div>
+
+    <div class="card" style="display: flex; flex-direction: column;">
+        
+        <div style="padding: 8px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <strong id="chart-symbol" style="font-size: 1.1rem;">LOADING</strong>
+            <div>
+                <span id="chart-price" style="font-size: 1.1rem; font-weight: bold; color: #e6edf3;">---</span>
+            </div>
+        </div>
+
+        <div id="tv-chart" style="flex: 2; min-height: 400px;"></div>
+
+        <div style="height: 250px; border-top: 1px solid var(--border); display: flex; flex-direction: column;">
+            
+            <div class="tab-header">
+                <button class="tab-btn active" onclick="TerminalApp.openTab(event, 'tab-active')">
+                    ⚡ ĐANG CHẠY (<span id="count-active">0</span>)
+                </button>
+                <button class="tab-btn" onclick="TerminalApp.openTab(event, 'tab-history')">
+                    📜 LỊCH SỬ
+                </button>
+            </div>
+
+            <div id="tab-active" class="tab-content active">
+                <table class="order-table" style="width: 100%;">
+                    <thead>
+                        <tr><th>ID</th><th>Type</th><th>Vol</th><th>Entry</th><th>PnL</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="active-body"></tbody>
+                </table>
+            </div>
+
+            <div id="tab-history" class="tab-content">
+                <table class="order-table" style="width: 100%;">
+                    <thead>
+                        <tr><th>Time</th><th>Type</th><th>Price</th><th>PnL</th></tr>
+                    </thead>
+                    <tbody id="history-body"></tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="card" style="padding: 15px; overflow-y: auto;">
+        <h3 style="margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">ĐẶT LỆNH</h3>
+        
+        <div style="background: #0d1117; padding: 10px; border-radius: 4px; margin-bottom: 15px; border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                <span>SL: <b id="suggest-sl" style="color:var(--accent-red)">---</b></span>
+                <span>TP: <b id="suggest-tp" style="color:var(--accent-green)">---</b></span>
+            </div>
+        </div>
+
+        <input type="hidden" id="inp-symbol" value="XAUUSD.sml">
+
+        <div style="margin-bottom: 15px; font-size: 0.9rem; display: flex; gap: 15px;">
+            <label><input type="radio" name="mode" checked onclick="toggleMode('money')"> Tiền ($)</label>
+            <label><input type="radio" name="mode" onclick="toggleMode('vol')"> Lot</label>
+        </div>
+
+        <div id="mode-money">
+            <div style="margin-bottom: 10px;">
+                <label style="display:block; font-size:0.8rem; color:#8b949e">Ký quỹ ($)</label>
+                <input type="number" id="inp-amount" value="100" class="dark-input" oninput="calculateVolume()">
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label style="display:block; font-size:0.8rem; color:#8b949e">Đòn bẩy (x)</label>
+                <input type="number" id="inp-leverage" value="100" class="dark-input" oninput="calculateVolume()">
+            </div>
+            <div style="text-align: right; margin-bottom: 15px; font-size: 0.9rem;">
+                ≈ <b id="calc-vol" style="color:var(--accent-blue)">0.00</b> Lot
+            </div>
+        </div>
+
+        <div id="mode-vol" style="display:none; margin-bottom: 15px;">
+            <label style="display:block; font-size:0.8rem; color:#8b949e">Volume (Lot)</label>
+            <input type="number" id="inp-vol" value="0.1" step="0.01" class="dark-input">
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button onclick="sendOrder('BUY')" class="btn-buy">BUY</button>
+            <button onclick="sendOrder('SELL')" class="btn-sell">SELL</button>
+        </div>
+        
+        <div id="msg-box" style="margin-top: 15px; text-align: center; font-size: 0.85rem;"></div>
+    </div>
+
+</div>
+
+{% endblock %}

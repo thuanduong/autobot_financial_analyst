@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+<script src="/static/js/terminal.js"></script>
+
+<div id="view-dashboard" class="view-section">
+    <div class="dashboard-header">
+        <h2>🔥 Tổng Quan Tài Sản</h2>
+        <span class="badge badge-neutral">Live Update</span>
+    </div>
+    <div class="stats-grid">
+        <div class="card">
+            <div class="card-title">Balance</div>
+            <div class="card-value">---</div>
+            <div class="card-sub">Vốn gốc</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Floating PnL</div>
+            <div class="card-value">---</div>
+            <div class="card-sub">Lệnh đang chạy</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Equity</div>
+            <div class="card-value">---</div>
+            <div class="card-sub">Tài sản thực</div>
+        </div>
+    </div>
+</div>
+
+<div id="view-radar" class="view-section" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2>📡 Radar Thị Trường</h2>
+    </div>
+    <table class="radar-table">
+        <thead>
+            <tr><th>Symbol</th><th>Price</th><th>RSI</th><th>Signal</th><th>Score</th><th>Status</th></tr>
+        </thead>
+        <tbody id="radar-body"></tbody>
+    </table>
+</div>
+
+<div id="view-terminal" class="view-section" style="display: none;">
+    <div class="pro-layout">
+        <div class="card" style="display:flex; flex-direction:column;">
+            <div style="padding:10px; border-bottom:1px solid var(--border)">📡 RADAR</div>
+            <div id="radar-list" style="overflow-y:auto; flex:1; padding: 0px 0px 15px 0px; "></div>
+        </div>
+
+        <div class="card" style="display:flex; flex-direction:column;">
+            <div style="padding:8px 15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between">
+                <strong id="chart-symbol">LOADING</strong>
+                <span id="chart-price">---</span>
+            </div>
+            <div id="tv-chart" style="flex:2; min-height:400px"></div>
+            <div style="height:250px; border-top:1px solid var(--border); display:flex; flex-direction:column;">
+                 <div class="tab-header">
+                    <button class="tab-btn active" onclick="TerminalApp.openTab(event, 'tab-active')">Active (<span id="count-active">0</span>)</button>
+                    <button class="tab-btn" onclick="TerminalApp.openTab(event, 'tab-history')">History</button>
+                 </div>
+                 <div id="tab-active" class="tab-content active"><table class="order-table"><tbody id="active-body"></tbody></table></div>
+                 <div id="tab-history" class="tab-content"><table class="order-table"><tbody id="history-body"></tbody></table></div>
+            </div>
+        </div>
+
+        <div class="card" style="overflow-y:auto;">
+            <div style="padding:15px;">
+                <h3>ĐẶT LỆNH</h3>
+                <input type="hidden" id="inp-symbol" value="XAUUSD.sml">
+                <div style="margin-bottom:10px">
+                    <label><input type="radio" name="mode" checked onclick="TerminalApp.toggleMode('money')"> Money</label>
+                    <label><input type="radio" name="mode" onclick="TerminalApp.toggleMode('vol')"> Lot</label>
+                </div>
+                <div id="mode-money">
+                    <input type="number" id="inp-amount" value="100" class="dark-input" oninput="TerminalApp.calculateVolume(parseFloat(document.getElementById('chart-price').innerText))">
+                    <input type="number" id="inp-leverage" value="100" class="dark-input" oninput="TerminalApp.calculateVolume(parseFloat(document.getElementById('chart-price').innerText))">
+                    <div style="text-align:right">≈ <b id="calc-vol">0.00</b> Lot</div>
+                </div>
+                <div id="mode-vol" style="display:none">
+                    <input type="number" id="inp-vol" value="0.1" class="dark-input">
+                </div>
+                <div style="display:flex; gap:10px; margin-top:10px">
+                    <button onclick="TerminalApp.sendOrder('BUY')" class="btn-buy">BUY</button>
+                    <button onclick="TerminalApp.sendOrder('SELL')" class="btn-sell">SELL</button>
+                </div>
+                <div id="msg-box" style="margin-top:10px"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,430 @@
+/* --- 1. VARIABLES & RESET --- */
+:root {
+    --bg-dark: #0e1117;
+    --bg-card: #161b22;
+    --border: #30363d;
+    --text-main: #c9d1d9;
+    --text-muted: #8b949e;
+    --accent-green: #2ea043;
+    --accent-red: #da3633;
+    --accent-blue: #58a6ff;
+    --nav-height: 60px;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    padding-top: var(--nav-height); /* Đẩy nội dung xuống dưới Topbar */
+    height: 100vh;
+    box-sizing: border-box;
+    overflow: hidden; /* Tránh thanh cuộn body, chỉ cuộn main-content */
+}
+
+.main-content {
+    /* Mặc định Desktop: Cuộn bên trong khu vực nội dung */
+    height: calc(100vh - var(--nav-height)); 
+    overflow-y: auto; 
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+a { text-decoration: none; color: inherit; }
+h2, h3 { margin-top: 0; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* --- 2. TOP NAVIGATION --- */
+.top-nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--nav-height);
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 1000;
+}
+
+.nav-brand {
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: var(--accent-blue);
+    margin-right: 30px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-links { display: flex; gap: 15px; }
+
+.nav-item {
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+}
+
+.nav-item:hover, .nav-item.active {
+    background: #21262d;
+    color: white;
+}
+
+.nav-user { display: flex; align-items: center; gap: 15px; }
+
+/* --- 3. LAYOUT CONTAINER --- */
+.main-content {
+    /* Quan trọng: Chiếm toàn bộ phần còn lại */
+    height: calc(100vh - var(--nav-height)); 
+    overflow-y: auto; /* Cho phép cuộn nội dung bên trong */
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    padding: 20px; /* Default padding cho Dashboard/Radar */
+}
+
+/* --- 4. DASHBOARD STYLES (Khôi phục) --- */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.dashboard-header {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 20px;
+}
+
+.card-title {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+.card-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #e6edf3;
+}
+
+.card-sub { font-size: 0.8rem; color: var(--text-muted); }
+
+/* --- 5. RADAR PAGE STYLES (Khôi phục Table) --- */
+.radar-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.radar-table th, .radar-table td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.radar-table th {
+    background-color: #21262d;
+    color: var(--text-muted);
+    position: sticky; top: 0;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+/* Score Bars (Dùng trong Radar JS) */
+.score-bar-bg {
+    width: 80px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 8px;
+}
+.score-bar-fill { height: 100%; background: var(--accent-blue); }
+
+/* --- 6. TERMINAL (PRO LAYOUT) --- */
+/* Ghi đè padding của .card cho Terminal để tối ưu diện tích */
+.pro-layout .card { padding: 0; }
+
+.pro-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr 320px; 
+    gap: 15px;
+    height: 100%; /* Full chiều cao main-content */
+}
+
+/* Các thành phần riêng của Terminal */
+.radar-row { cursor: pointer; padding: 10px; border-bottom: 1px solid #21262d; transition: 0.2s; }
+.radar-row:hover { background: #1f242c; }
+.radar-row.active { background: #1c2128; border-left: 3px solid var(--accent-blue); }
+.radar-symbol { font-weight: bold; font-size: 0.9rem; display: block; }
+
+.order-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.order-table th { background: #21262d; color: #8b949e; position: sticky; top: 0; padding: 8px; text-align: left; z-index: 1; }
+.order-table td { padding: 8px; border-bottom: 1px solid #333; }
+
+/* Tabs */
+.tab-header { display: flex; border-bottom: 1px solid var(--border); background: #21262d; }
+.tab-btn { flex: 1; padding: 10px; background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-weight: bold; border-bottom: 2px solid transparent; }
+.tab-btn.active { color: var(--text-main); border-bottom: 2px solid var(--accent-blue); background: var(--bg-card); }
+.tab-content { display: none; flex: 1; overflow-y: auto; }
+.tab-content.active { display: block; }
+
+/* Inputs & Buttons */
+.dark-input { background: #0d1117; border: 1px solid var(--border); color: white; padding: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; border-radius: 4px; }
+.btn-buy { background: var(--accent-green); color: white; border: none; padding: 10px; flex: 1; border-radius: 4px; font-weight: bold; cursor: pointer; }
+.btn-sell { background: var(--accent-red); color: white; border: none; padding: 10px; flex: 1; border-radius: 4px; font-weight: bold; cursor: pointer; }
+
+/* --- 7. COMMON UTILS --- */
+.badge { padding: 3px 8px; border-radius: 3px; font-size: 0.75rem; font-weight: bold; display: inline-block; }
+.badge-buy { background: rgba(46, 160, 67, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+.badge-sell { background: rgba(218, 54, 51, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
+.badge-neutral { background: rgba(139, 148, 158, 0.2); color: var(--text-muted); border: 1px solid var(--border); }
+
+/* --- 8. RESPONSIVE MOBILE --- */
+@media (max-width: 768px) {
+    /* 1. THÁO GỠ CHIỀU CAO CỐ ĐỊNH */
+    body {
+        height: auto;       /* Để trang web dài ra tùy ý */
+        overflow-y: auto;   /* Bật thanh cuộn trình duyệt */
+        overflow-x: hidden; /* Chặn cuộn ngang */
+    }
+
+    .main-content {
+        height: auto;       /* Nội dung dài bao nhiêu thì cao bấy nhiêu */
+        overflow: visible;  /* Không cắt nội dung nữa */
+        padding: 10px;
+        padding-bottom: 80px; /* Chừa khoảng trống dưới cùng để không bị sát đáy */
+    }
+
+    /* 2. CHỈNH LAYOUT CÁC THẺ */
+    .top-nav { padding: 0 10px; }
+    .nav-brand span { display: none; }
+    .hide-mobile { display: none; }
+    
+    .stats-grid { grid-template-columns: 1fr; }
+    
+    .radar-table { display: block; overflow-x: auto; white-space: nowrap; }
+
+    /* 3. TERMINAL LAYOUT (QUAN TRỌNG) */
+    .pro-layout {
+        display: flex;
+        flex-direction: column; /* Xếp chồng dọc */
+        height: auto !important; /* Bắt buộc chiều cao tự động */
+        gap: 20px;
+    }
+    
+    /* Ghi đè lại chiều cao các panel trên Mobile */
+    
+    /* Chart (Ưu tiên 1): Cho cao hẳn để dễ nhìn */
+    .pro-layout > div:nth-child(2) { 
+        order: 3; 
+        height: 500px !important; 
+        flex: none; /* Không co giãn, cố định 500px */
+    } 
+    
+    /* Order Panel (Ưu tiên 2): Chiều cao tự động theo nội dung */
+    .pro-layout > div:nth-child(3) { 
+        order: 2; 
+        height: auto !important; 
+        flex: none;
+    } 
+    
+    /* Radar Mini (Ưu tiên 3): Giới hạn chiều cao, cuộn bên trong nếu quá dài */
+    .pro-layout > div:nth-child(1) { 
+        order: 1; 
+        height: 300px !important; 
+        flex: none;
+    }
+    
+    /* Reset padding card cho đẹp trên mobile */
+    .pro-layout .card { 
+        border-radius: 6px; 
+        border: 1px solid var(--border);
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    /* 1. THÁO GỠ CHIỀU CAO CỐ ĐỊNH */
+    body {
+        height: auto;       /* Để trang web dài ra tùy ý */
+        overflow-y: auto;   /* Bật thanh cuộn trình duyệt */
+        overflow-x: hidden; /* Chặn cuộn ngang */
+    }
+
+    .main-content {
+        height: auto;       /* Nội dung dài bao nhiêu thì cao bấy nhiêu */
+        overflow: visible;  /* Không cắt nội dung nữa */
+        padding: 10px;
+        padding-bottom: 80px; /* Chừa khoảng trống dưới cùng để không bị sát đáy */
+    }
+
+    /* 2. CHỈNH LAYOUT CÁC THẺ */
+    .top-nav { padding: 0 10px; }
+    .nav-brand span { display: none; }
+    .hide-mobile { display: none; }
+    
+    .stats-grid { grid-template-columns: 1fr; }
+    
+    .radar-table { display: block; overflow-x: auto; white-space: nowrap; }
+
+    /* 3. TERMINAL LAYOUT (QUAN TRỌNG) */
+    .pro-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* Chia 2 cột bằng nhau */
+        grid-auto-flow: row dense;      /* Giúp lấp đầy khoảng trống */
+        gap: 15px;
+        height: auto;      /* Cho phép cuộn nếu nội dung dài */
+        overflow: visible; 
+        padding-bottom: 50px;
+    }
+    
+    /* 1. RADAR (Góc Trái Trên) */
+    .pro-layout > div:nth-child(1) {
+        order: 1;
+        grid-column: 1 / 2; /* Cột 1 */
+        height: 400px;      /* Chiều cao cố định cho đẹp */
+    }
+
+    /* 2. ORDER PANEL (Góc Phải Trên) */
+    .pro-layout > div:nth-child(3) {
+        order: 2;
+        grid-column: 2 / 3; /* Cột 2 */
+        height: 400px;      /* Cao bằng Radar */
+        padding: 0px;
+    }
+
+    /* 3. CHART (Nằm dưới cùng, Full Width) */
+    .pro-layout > div:nth-child(2) {
+        order: 3;
+        grid-column: 1 / -1; /* Chiếm trọn từ đầu đến cuối (Full width) */
+        height: auto !important;       /* Chiều cao ưu tiên cho biểu đồ */
+    }
+
+    /* Tinh chỉnh nội dung bên trong cho phù hợp chiều cao mới */
+    .pro-layout .card {
+        height: 100%; /* Card luôn fill đầy ô grid */
+    }
+}
+
+
+/* --- THEME CYBER WAVE (FIXED INPUTS & TABS) --- */
+[data-theme="cyber"] {
+    background-image: linear-gradient(to right bottom, #FDE789, #119DA4);
+    /* Set biến màu */
+    --bg-dark: #FDE789; 
+    --bg-card: rgba(255, 255, 255, 0.1); /* Card trong suốt */
+    --border: rgba(255, 255, 255, 0.3);  /* Viền trắng mờ */
+    
+    --text-main: #ffffff;
+    --text-muted: #e0f7fa; /* Màu trắng xanh nhạt cho dễ đọc trên nền teal */
+    
+    --accent-blue: #FDE789; /* Màu accent đổi thành vàng cho nổi trên nền xanh */
+    --accent-green: #00e676;
+    --accent-red: #ff4081;
+}
+
+/* 1. ÁP DỤNG BACKGROUND CHÍNH CHO BODY */
+[data-theme="cyber"] body {
+    background-image: linear-gradient(to right bottom, #FDE789, #119DA4);
+    background-attachment: fixed; /* Cố định nền khi cuộn */
+    background-size: cover;
+}
+
+/* 2. CARD GLASSMORPHISM (Hiệu ứng kính) */
+[data-theme="cyber"] .card {
+    /* Gradient đảo ngược nhẹ hoặc màu tối bán trong suốt để nổi bật chữ trắng */
+    background-image: linear-gradient(to bottom, #708F96FF, #AA895FFF);
+    box-shadow: 0px 0px 32px 0 rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px); /* Làm mờ nền sau lưng card */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 3. FIX INPUT FIELDS (Ô nhập liệu) */
+[data-theme="cyber"] .dark-input {
+    background: rgba(0, 0, 0, 0.3); /* Nền đen mờ 30% */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+}
+[data-theme="cyber"] .dark-input:focus {
+    background: rgba(0, 0, 0, 0.5);
+    border-color: #FDE789;
+    outline: none;
+}
+
+/* 4. FIX TOP NAV */
+[data-theme="cyber"] .top-nav {
+    background-color: rgba(17, 157, 164, 0.8); /* Xanh Teal mờ */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(5px);
+}
+
+/* 5. FIX TABS & TABLES (Radar/Terminal) */
+[data-theme="cyber"] .tab-header,
+[data-theme="cyber"] .order-table th, 
+[data-theme="cyber"] .radar-table th {
+    background: rgba(0, 0, 0, 0.2) !important; /* Header trong suốt tối màu */
+    color: #FDE789;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="cyber"] .tab-btn {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="cyber"] .tab-btn.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-bottom: 2px solid #FDE789;
+}
+
+[data-theme="cyber"] .order-table td, 
+[data-theme="cyber"] .radar-table td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 6. FIX RADAR ROWS (Bỏ màu nền đen cũ) */
+[data-theme="cyber"] .radar-row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+[data-theme="cyber"] .radar-row:hover {
+    background: rgba(255, 255, 255, 0.1); /* Hover sáng lên thay vì tối đi */
+}
+[data-theme="cyber"] .radar-row.active {
+    background: rgba(253, 231, 137, 0.2); /* Active màu vàng nhạt */
+    border-left: 3px solid #FDE789;
+    color: #fff;
+}
+
+/* 7. BUTTONS */
+[data-theme="cyber"] .btn-buy {
+    background-image: linear-gradient(45deg, #00e676, #00c853);
+    box-shadow: 0 4px 15px rgba(0, 230, 118, 0.4);
+    color: white;
+}
+[data-theme="cyber"] .btn-sell {
+    background-image: linear-gradient(45deg, #ff4081, #f50057);
+    box-shadow: 0 4px 15px rgba(255, 64, 129, 0.4);
+    color: white;
+}
+
+/* 8. NAV ITEMS */
+[data-theme="cyber"] .nav-item:hover, 
+[data-theme="cyber"] .nav-item.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
