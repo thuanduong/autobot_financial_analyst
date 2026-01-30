@@ -1,9 +1,13 @@
 fastapi
 uvicorn
-python-dotenv
+jinja2
+python-multipart
 websockets
 requests
-yfinance
-numpy<2.0.0
 pandas
+numpy
 ta
+MetaTrader5
+yfinance
+ccxt
+oandapyV20
