@@ -14,4 +14,9 @@ WATCHLIST = [
     "BTCUSD"   # Bitcoinz
 ]
 
+TIMEFRAMES = {
+    "Macro": "H1",  # Khung xác định xu hướng
+    "Micro": ["M5", "M15", "H1", "H4"] # Các khung hiển thị trên Radar
+}
+
 DB_PATH = "database/trade_data.db"

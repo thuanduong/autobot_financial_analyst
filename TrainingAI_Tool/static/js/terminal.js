@@ -4,19 +4,20 @@ const TerminalApp = {
     chart: null,
     series: null,
     currentSymbol: "XAUUSD.sml",
+    currentTimeframe: "M5",
     lastCandleTime: 0,
     radarInterval: null,
 
     init: function() {
-        if (this.chart) return; // Đã init rồi thì thôi
+        if (this.chart) return; 
 
         // 1. Khởi tạo Chart
         const chartContainer = document.getElementById('tv-chart');
         if(!chartContainer) return;
 
         this.chart = LightweightCharts.createChart(chartContainer, {
-            layout: { backgroundColor: '#161b22', textColor: '#d1d5db' },
-            grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
+            layout: { backgroundColor: 'transparent', textColor: '#d1d5db' },
+            grid: { vertLines: { color: 'rgba(42, 46, 57, 0.5)' }, horzLines: { color: 'rgba(42, 46, 57, 0.5)' } },
             timeScale: { timeVisible: true, secondsVisible: false }
         });
         this.series = this.chart.addCandlestickSeries();
@@ -32,13 +33,38 @@ const TerminalApp = {
         this.loadOrders();
         
         // 2. Kích hoạt Radar Loop
-        this.updateRadar(); // Chạy ngay lần đầu
+        this.updateRadar(); 
         if (this.radarInterval) clearInterval(this.radarInterval);
         this.radarInterval = setInterval(() => this.updateRadar(), 2000);
 
         console.log("Terminal Initialized");
     },
+    requestChartData: function() {
+        this.series.setData([]);
+        this.lastCandleTime = 0;
+        this.showStatus(`Đang tải ${this.currentSymbol} (${this.currentTimeframe})...`);
 
+        if(window.sendWsMessage) {
+            window.sendWsMessage({
+                type: "SWITCH_SYMBOL", 
+                symbol: this.currentSymbol,
+                timeframe: this.currentTimeframe 
+            });
+        }
+    },
+    changeTimeframe: function(tf) {
+        if (this.currentTimeframe === tf) return;
+        this.currentTimeframe = tf;
+
+        // Update UI Active Class
+        document.querySelectorAll('.btn-tf-sm').forEach(btn => {
+            btn.classList.remove('active');
+            if(btn.innerText === tf) btn.classList.add('active');
+        });
+
+        // Gọi hàm request chung
+        this.requestChartData();
+    },
     // --- XỬ LÝ DỮ LIỆU TỪ WEBSOCKET (DO MAIN.JS GỌI) ---
     handleWsMessage: function(msg) {
         if (msg.type === "HISTORY") {
@@ -47,13 +73,14 @@ const TerminalApp = {
             if(sorted.length > 0) {
                 this.updatePriceDisplay(sorted[sorted.length-1].close);
                 this.lastCandleTime = sorted[sorted.length-1].time;
+                this.showStatus("");
+            } else {
+                this.showStatus("Không có dữ liệu lịch sử", true);
             }
         }
         
         if (msg.type === "UPDATE" && msg.symbol === this.currentSymbol) {
-            // Check time để tránh lỗi chart
             if (msg.candle.time < this.lastCandleTime) return;
-            
             this.series.update(msg.candle);
             this.lastCandleTime = msg.candle.time;
             this.updatePriceDisplay(msg.candle.close);
@@ -63,13 +90,9 @@ const TerminalApp = {
     updatePriceDisplay: function(price) {
         const el = document.getElementById('chart-price');
         if(el) el.innerText = price;
-        
-        // Tự động tính toán lại các con số
         this.calculateVolume(price);
         this.updateActivePnL(price);
     },
-
-    // --- CÁC HÀM LOGIC CŨ (COPY VÀO) ---
     changeSymbol: function(symbol) {
         this.currentSymbol = symbol;
         document.getElementById('inp-symbol').value = symbol;
@@ -82,8 +105,20 @@ const TerminalApp = {
 
         // Gửi yêu cầu switch qua WS Global (Gọi hàm từ window hoặc main)
         if(window.sendWsMessage) {
-            window.sendWsMessage({type: "SWITCH_SYMBOL", symbol: symbol});
+            window.sendWsMessage({type: "SWITCH_SYMBOL", symbol: symbol, timeframe: this.currentTimeframe });
         }
+    },
+    hangeSymbol: function(symbol) {
+        this.currentSymbol = symbol;
+        document.getElementById('inp-symbol').value = symbol;
+        document.getElementById('chart-symbol').innerText = symbol;
+        
+        // Highlight RadarRow
+        document.querySelectorAll('.radar-row').forEach(r => r.classList.remove('active'));
+        const row = document.getElementById(`radar-${symbol}`);
+        if(row) row.classList.add('active');
+
+        this.requestChartData(); 
     },
 
     calculateVolume: function(currentPrice) {
@@ -201,13 +236,15 @@ const TerminalApp = {
     },
     updateRadar: async function() {
         try {
-            const res = await fetch('/api/scan-results');
-            const data = await res.json();
-            
+            const response = await fetch('/api/scan-results');
+            const resJson = await response.json();
+            const data = resJson.data || {};     
+            const status = resJson.status || "UNKNOWN";
+            console.log("Radar Status:", status);
             // Xây dựng HTML
             let html = "";
             for(const [sym, info] of Object.entries(data)) {
-                let color = info.signal==='BUY'?'var(--accent-green)':(info.signal==='SELL'?'var(--accent-red)':'#8b949e');
+                let color = info.signal.includes('BUY')?'var(--accent-green)':(info.signal.includes('SELL')?'var(--accent-red)':'#8b949e');
                 
                 // Highlight dòng đang chọn
                 let activeClass = sym === this.currentSymbol ? 'active' : '';
@@ -235,6 +272,25 @@ const TerminalApp = {
             
         } catch(e) { console.error("Radar mini error", e); }
     },
+    showStatus: function(msg, isError=false) {
+        const chartArea = document.getElementById('tv-chart');
+        // Tạo một lớp phủ (overlay) nếu chưa có
+        let overlay = document.getElementById('chart-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'chart-overlay';
+            overlay.style.cssText = "position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#8b949e; z-index:10; pointer-events:none;";
+            if(chartArea) chartArea.parentElement.style.position = 'relative'; // Đảm bảo parent relative
+            if(chartArea) chartArea.parentElement.appendChild(overlay);
+        }
+        
+        overlay.innerText = msg;
+        overlay.style.color = isError ? 'var(--accent-red)' : '#8b949e';
+        
+        // Nếu có dữ liệu rồi thì ẩn overlay đi
+        if (msg === "") overlay.style.display = 'none';
+        else overlay.style.display = 'block';
+    }
 
 };
 window.TerminalApp = TerminalApp;

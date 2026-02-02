@@ -195,6 +195,56 @@ h2, h3 { margin-top: 0; }
 .badge-sell { background: rgba(218, 54, 51, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
 .badge-neutral { background: rgba(139, 148, 158, 0.2); color: var(--text-muted); border: 1px solid var(--border); }
 
+.radar-row-hover:hover td {
+    background-color: rgba(255, 255, 255, 0.05); /* Sáng lên nhẹ khi di chuột */
+    transition: background-color 0.2s;
+}
+
+/* Tùy chỉnh cột Lý do để không bị tràn chữ */
+.radar-table td {
+    vertical-align: middle; /* Căn giữa theo chiều dọc */
+}
+
+.tf-selector { display: flex; gap: 5px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 4px; }
+.btn-tf {
+    background: transparent; border: none; color: var(--text-muted); 
+    padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight: bold;
+}
+.btn-tf.active { background: var(--accent-blue); color: white; }
+.btn-tf:hover { background: rgba(255,255,255,0.1); }
+
+.tf-selector-sm {
+    display: flex;
+    gap: 2px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px;
+    border-radius: 4px;
+    margin-left: 10px;
+}
+
+.btn-tf-sm {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 2px 8px;
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.btn-tf-sm:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
+}
+
+.btn-tf-sm.active {
+    background: var(--accent-blue);
+    color: #fff;
+}
+
+
 /* --- 8. RESPONSIVE MOBILE --- */
 @media (max-width: 768px) {
     /* 1. THÁO GỠ CHIỀU CAO CỐ ĐỊNH */
@@ -335,7 +385,7 @@ h2, h3 { margin-top: 0; }
     
     --accent-blue: #FDE789; /* Màu accent đổi thành vàng cho nổi trên nền xanh */
     --accent-green: #00e676;
-    --accent-red: #ff4081;
+    --accent-red: #ff4040;
 }
 
 /* 1. ÁP DỤNG BACKGROUND CHÍNH CHO BODY */
@@ -351,6 +401,14 @@ h2, h3 { margin-top: 0; }
     background-image: linear-gradient(to bottom, #708F96FF, #AA895FFF);
     box-shadow: 0px 0px 32px 0 rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(8px); /* Làm mờ nền sau lưng card */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="cyber"] .radar-table {
+    background-image: linear-gradient(to bottom, #708F96FF, #AA895FFF);
+    border-radius: 6px;
+    padding: 20px;
+    box-shadow: 0px 0px 32px 0 rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 

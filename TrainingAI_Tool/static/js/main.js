@@ -1,6 +1,7 @@
 /* static/js/main.js */
 let globalWS = null;
 let currentView = 'dashboard';
+let currentRadarTF = "M5";
 
 // --- 1. CẤU HÌNH & UTILS ---
 const fmtMoney = (num) => {
@@ -74,64 +75,6 @@ async function updateDashboard() {
     }
 }
 
-// --- 4. LOGIC RADAR PAGE (Trang /radar) ---
-// Radar là dữ liệu chung (Public), nên Khách vẫn xem được bình thường
-async function updateRadarPage() {
-    try {
-        const response = await fetch('/api/scan-results');
-        if (!response.ok) throw new Error("API Scan Error");
-        
-        const data = await response.json();
-        const tbody = document.getElementById('radar-body');
-        
-        if (!tbody) return; // Không phải trang Radar thì thoát
-
-        if (Object.keys(data).length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#8b949e; padding: 20px;">Đang chờ dữ liệu quét...</td></tr>`;
-            return;
-        }
-
-        tbody.innerHTML = ''; 
-
-        for (const [symbol, info] of Object.entries(data)) {
-            let badgeClass = 'badge-neutral';
-            let scoreColor = '#58a6ff';
-            let rowStyle = '';
-
-            if (info.signal === 'BUY' || info.signal === 'STRONG BUY') {
-                badgeClass = 'badge-buy';
-                scoreColor = 'var(--accent-green)';
-                rowStyle = 'color: var(--accent-green); font-weight: bold;';
-            } else if (info.signal === 'SELL' || info.signal === 'STRONG SELL') {
-                badgeClass = 'badge-sell';
-                scoreColor = 'var(--accent-red)';
-                rowStyle = 'color: var(--accent-red); font-weight: bold;';
-            }
-
-            const row = `
-                <tr>
-                    <td style="font-weight: bold;">${symbol}</td>
-                    <td style="${rowStyle}">${fmtNum(info.price)}</td>
-                    <td>${info.rsi}</td>
-                    <td><span class="badge ${badgeClass}">${info.signal}</span></td>
-                    <td>
-                        <div style="display:flex; align-items:center;">
-                            <span style="width: 30px; text-align:right; margin-right:10px;">${info.score}</span>
-                            <div class="score-bar-bg">
-                                <div class="score-bar-fill" style="width: ${info.score}%; background: ${scoreColor}"></div>
-                            </div>
-                        </div>
-                    </td>
-                    <td style="font-size: 0.85rem; color: #8b949e;">Running</td>
-                </tr>
-            `;
-            tbody.innerHTML += row;
-        }
-
-    } catch (error) {
-        console.error("Radar error:", error);
-    }
-}
 
 // Hàm áp dụng theme
 function applyTheme(themeName) {
@@ -139,6 +82,139 @@ function applyTheme(themeName) {
         document.body.setAttribute('data-theme', 'cyber');
     } else {
         document.body.removeAttribute('data-theme'); // Mặc định (Dark)
+    }
+}
+
+// Hàm đổi TF
+function switchRadarTF(tf) {
+    currentRadarTF = tf;
+    
+    // Update UI Active Button
+    document.querySelectorAll('.btn-tf').forEach(b => {
+        b.classList.remove('active');
+        if(b.innerText === tf) b.classList.add('active');
+    });
+
+    // Gọi update ngay lập tức
+    updateRadarPage();
+}
+
+// --- 4. LOGIC RADAR PAGE (Trang /radar) ---
+// Radar là dữ liệu chung (Public), nên Khách vẫn xem được bình thường
+async function updateRadarPage() {
+    try {
+        // Gọi API với tham số TF
+        console.log(`Fetching radar: /api/scan-results?tf=${currentRadarTF}`);
+
+        const response = await fetch(`/api/scan-results?tf=${currentRadarTF}`);
+        if (!response.ok) {
+            console.error("Server returned:", response.status);
+            throw new Error(`Server Error: ${response.status}`);
+        }
+        
+        const resJson = await response.json();
+        const data = resJson.data || {};     
+        const status = resJson.status || "UNKNOWN";
+        console.log("Radar Status:", status);
+
+        const tbody = document.getElementById('radar-body');
+        if (!tbody) return;
+
+        if (Object.keys(data).length === 0) {
+            let msg = "Đang khởi động Scanner...";
+            let color = "#8b949e";
+
+            if (status.includes("CLOSED")) {
+                msg = "💤 THỊ TRƯỜNG ĐANG ĐÓNG CỬA";
+                color = "var(--accent-red)";
+            } else if (status === "LOADING" || status === "Starting...") {
+                msg = "🔄 Đang khởi động hệ thống AI...";
+                color = "var(--accent-blue)";
+            }
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align:center; padding: 40px;">
+                        <div style="font-size: 1.2rem; color: ${color}; font-weight: bold;">
+                            <i class="fa-solid fa-store-slash"></i> ${msg}
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 10px;">
+                            Status: ${status}
+                        </div>
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        tbody.innerHTML = ''; 
+
+        if (Object.keys(data).length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px">Đang quét ${currentRadarTF}...</td></tr>`;
+            return;
+        }
+
+        for (const [symbol, info] of Object.entries(data)) {
+            // ... (Logic màu sắc cũ giữ nguyên) ...
+            
+            // TÍNH TOÁN TIỀN DỰ KIẾN (EST. PROFIT)
+            // Giả định đánh 0.1 Lot
+            let lotSize = 0.1;
+            let contractSize = symbol.includes("XAU") ? 100 : 100000; // Vàng 100, Forex 100k
+            let price = info.price || 0;
+            let score = info.score || 0;
+            let signal = info.signal || "NEUTRAL";
+
+            // Khoảng cách từ Entry đến TP
+            let distTP = Math.abs(info.suggested_tp - price);
+            let profitUSD = distTP * contractSize * lotSize;
+            
+            // Format số tiền
+            let profitStr = `+${fmtMoney(profitUSD)}`;
+            let riskStr = `-${fmtMoney(Math.abs(price - info.suggested_sl) * contractSize * lotSize)}`;
+
+            const row = `
+                <tr class="radar-row-hover">
+                    <td><b>${symbol}</b></td>
+                    <td style="color:${info.macro_trend==='UPTREMD'?'var(--accent-green)':'var(--accent-red)'}">
+                        ${fmtNum(price)}
+                    </td>
+                    
+                    <td><span class="badge badge-neutral">${info.macro_trend}</span></td>
+                    
+                    <td><span class="badge ${signal.includes('BUY')?'badge-buy':(signal.includes('SELL')?'badge-sell':'badge-neutral')}">${signal}</span></td>
+                    
+                    <td>
+                        <div style="font-size:0.8rem">
+                            <span style="color:var(--accent-red)">SL: ${info.suggested_sl}</span><br>
+                            <span style="color:var(--accent-green)">TP: ${info.suggested_tp}</span>
+                        </div>
+                    </td>
+                    
+                    <td>
+                        <div style="font-size:0.8rem">
+                            <span style="color:var(--accent-green)">Target: ${profitStr}</span><br>
+                            <span style="color:var(--text-muted); font-size:0.7rem">Risk: ${riskStr}</span>
+                        </div>
+                    </td>
+
+                    <td style="font-size:0.8rem; color:var(--text-muted)">${info.reason}</td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        }
+    } catch (error) { 
+        console.error("Radar error:", error);
+        // Hiển thị lỗi kết nối lên giao diện thay vì console
+        const tbody = document.getElementById('radar-body');
+        if(tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align:center; color: var(--accent-red); padding: 20px;">
+                        ⚠️ Mất kết nối tới Server (${error.message})<br>
+                        <small>Đang thử lại...</small>
+                    </td>
+                </tr>`;
+        }
     }
 }
 
@@ -203,7 +279,7 @@ function switchView(viewName) {
     if (viewName === 'terminal') {
         TerminalApp.init(); // Init chart nếu chưa có
         // Gửi lại request lấy data chart vì có thể kết nối đã idle
-        sendWsMessage({type: "SWITCH_SYMBOL", symbol: TerminalApp.currentSymbol});
+        sendWsMessage({type: "SWITCH_SYMBOL", symbol: TerminalApp.currentSymbol, timeframe: TerminalApp.currentTimeframe });
     } else if (viewName === 'radar') {
         updateRadarPage();
     } else {

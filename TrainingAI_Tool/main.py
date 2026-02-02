@@ -1,26 +1,29 @@
 # main.py
 import asyncio
+import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+from starlette.requests import Request
+
 from core.engine.scanner import MarketScanner
 from core.engine.signal_bus import SignalBus
-from api import routes  # <--- Import file routes vừa sửa
+from api.routes import router, set_scanner_instance
 
 app = FastAPI()
 
-# 1. Mount Static (CSS/JS)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
-# 2. Đăng ký Router (QUAN TRỌNG: Nếu thiếu dòng này sẽ bị lỗi 404 API)
-app.include_router(routes.router)
-
-# 3. Khởi tạo Core Engine
 bus = SignalBus()
 scanner = MarketScanner(bus)
+set_scanner_instance(scanner)
+app.include_router(router)
 
-# 4. Inject Scanner vào Routes 
-# (Để API có thể đọc dữ liệu từ Scanner)
-routes.scanner_instance = scanner
+@app.get("/")
+async def index(request: Request):
+    return templates.TemplateResponse("app.html", {"request": request})
 
 @app.on_event("startup")
 async def startup_event():
@@ -30,5 +33,4 @@ async def startup_event():
 
 # Nếu chạy trực tiếp bằng python main.py (Optional)
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

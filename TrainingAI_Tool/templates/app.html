@@ -30,14 +30,30 @@
 
 <div id="view-radar" class="view-section" style="display: none;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h2>📡 Radar Thị Trường</h2>
+        <h2>📡 Radar (Multi-Timeframe)</h2>
+        
+        <div class="tf-selector">
+            <button class="btn-tf active" onclick="switchRadarTF('M5')">M5</button>
+            <button class="btn-tf" onclick="switchRadarTF('M15')">M15</button>
+            <button class="btn-tf" onclick="switchRadarTF('H1')">H1</button>
+            <button class="btn-tf" onclick="switchRadarTF('H4')">H4</button>
+        </div>
     </div>
-    <table class="radar-table">
-        <thead>
-            <tr><th>Symbol</th><th>Price</th><th>RSI</th><th>Signal</th><th>Score</th><th>Status</th></tr>
-        </thead>
-        <tbody id="radar-body"></tbody>
-    </table>
+
+    <div style="overflow-x: auto;">
+        <table class="radar-table">
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <th>Price</th>
+                    <th>Trend (Macro)</th> <th>Signal (Micro)</th>
+                    <th>Target (SL/TP)</th>
+                    <th>Est. Profit (0.1 Lot)</th> <th>Reason</th>
+                </tr>
+            </thead>
+            <tbody id="radar-body"></tbody>
+        </table>
+    </div>
 </div>
 
 <div id="view-terminal" class="view-section" style="display: none;">
@@ -48,9 +64,19 @@
         </div>
 
         <div class="card" style="display:flex; flex-direction:column;">
-            <div style="padding:8px 15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between">
-                <strong id="chart-symbol">LOADING</strong>
-                <span id="chart-price">---</span>
+            <div style="padding:8px 15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items: center;">
+                <div style="display: flex; align-items: center;">
+                    <strong id="chart-symbol" style="font-size: 1.1rem; margin-right: 10px;">LOADING</strong>
+                    
+                    <div class="tf-selector-sm">
+                        <button class="btn-tf-sm" onclick="TerminalApp.changeTimeframe('M1')">M1</button>
+                        <button class="btn-tf-sm active" onclick="TerminalApp.changeTimeframe('M5')">M5</button>
+                        <button class="btn-tf-sm" onclick="TerminalApp.changeTimeframe('M15')">M15</button>
+                        <button class="btn-tf-sm" onclick="TerminalApp.changeTimeframe('H1')">H1</button>
+                        <button class="btn-tf-sm" onclick="TerminalApp.changeTimeframe('H4')">H4</button>
+                    </div>
+                </div>
+                <span id="chart-price" style="font-size: 1.1rem; font-weight: bold; color: var(--accent-blue);">---</span>
             </div>
             <div id="tv-chart" style="flex:2; min-height:400px"></div>
             <div style="height:250px; border-top:1px solid var(--border); display:flex; flex-direction:column;">

@@ -1,10 +1,12 @@
 # api/routes.py
-from fastapi import APIRouter, Request, Body, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Request, Body, WebSocket, WebSocketDisconnect, Query
+from starlette.websockets import WebSocketState
 from fastapi.templating import Jinja2Templates
 from database.repository import TradeRepo
 from database.chart_repo import ChartRepo
 from core.user.portfolio import PortfolioManager
 from core.data_provider.mt5_provider import MT5Provider # Import MT5
+from core.engine.scanner import MarketScanner
 from pydantic import BaseModel
 import json
 import asyncio
@@ -19,6 +21,11 @@ chart_repo = ChartRepo()
 
 # Biến global scanner sẽ được inject từ main.py
 scanner_instance = None
+
+def set_scanner_instance(scanner):
+    global scanner_instance
+    scanner_instance = scanner
+    print("✅ Scanner injected into Routes")
 
 # --- MODELS ---
 class OrderRequest(BaseModel):
@@ -49,13 +56,16 @@ async def app_entry(request: Request):
 def ping():
     return {"status": "ok", "message": "Pong!"}
 
-# 2. API Lấy kết quả quét Radar (QUAN TRỌNG: File main.js gọi cái này)
 @router.get("/api/scan-results")
-def get_scan():
-    if scanner_instance:
-        # Trả về kết quả quét mới nhất từ bộ nhớ RAM
-        return scanner_instance.latest_scan
-    return {}
+def get_scan_results(tf: str = Query("M5")):
+    if not scanner_instance:
+        return {"status": "Starting...", "data": {}}
+    
+    return {
+        "status": scanner_instance.market_status,
+        "data": scanner_instance.latest_scan.get(tf, {})
+    }
+
 
 # 3. API Lấy danh sách User
 @router.get("/api/users")
@@ -223,68 +233,84 @@ def get_user_stats(username: str):
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    
+    current_symbol = "XAUUSD.sml" 
+    current_timeframe = "M5"
+
     try:
-        current_symbol = "XAUUSD.sml" 
-        
         while True:
+            # --- KIỂM TRA TRẠNG THÁI TRƯỚC KHI CHẠY VÒNG LẶP ---
+            if websocket.client_state == WebSocketState.DISCONNECTED:
+                break
+
+            # 1. LẮNG NGHE YÊU CẦU TỪ CLIENT (Non-blocking)
             try:
-                data = await asyncio.wait_for(websocket.receive_text(), timeout=0.1)
-                msg = json.loads(data)
+                # Chờ tin nhắn trong 0.5s
+                data_text = await asyncio.wait_for(websocket.receive_text(), timeout=0.5)
+                msg = json.loads(data_text)
                 
                 if msg.get('type') == 'SWITCH_SYMBOL':
                     current_symbol = msg.get('symbol')
+                    current_timeframe = msg.get('timeframe', 'M5')
                     
-                    # 1. Lấy lịch sử (Ưu tiên DB -> Fallback MT5)
-                    df = chart_repo.get_history(current_symbol, limit=500) 
-                    
-                    # B. Nếu DB rỗng -> Fallback gọi MT5
-                    if df.empty:
-                        df = mt5_service.get_data(current_symbol, n=500)
-                        if df is not None:
-                            chart_repo.save_bulk_data(current_symbol, df)
-                    
-                    if df is not None and not df.empty:
-                        candles = []
-                        for _, row in df.iterrows():
-                            # --- XỬ LÝ TIMESTAMP VS INT ---
-                            raw_time = row['time']
-                            ts = 0
-                            
-                            # Nếu lấy từ MT5, nó là Datetime Object -> cần .timestamp()
-                            if hasattr(raw_time, 'timestamp'):
-                                ts = int(raw_time.timestamp())
-                            # Nếu lấy từ DB, nó là số int/float -> dùng luôn
+                    # LOGIC LẤY DATA (MT5 -> DB)
+                    if scanner_instance:
+                        # A. Gọi MT5 trước
+                        df = scanner_instance.mt5.get_data(current_symbol, n=500, timeframe=current_timeframe)
+                        
+                        # B. Fallback DB
+                        if df is None or df.empty:
+                            df = scanner_instance.repo.get_history(current_symbol, limit=500, timeframe=current_timeframe)
+                        
+                        # C. Gửi Data (Kiểm tra kết nối trước khi gửi)
+                        if websocket.client_state == WebSocketState.CONNECTED:
+                            if df is not None and not df.empty:
+                                candles = []
+                                for _, row in df.iterrows():
+                                    raw_time = row['time']
+                                    ts = int(raw_time.timestamp()) if hasattr(raw_time, 'timestamp') else int(raw_time)
+                                    candles.append({
+                                        "time": ts, 
+                                        "open": row['open'], "high": row['high'], 
+                                        "low": row['low'], "close": row['close']
+                                    })
+                                
+                                await websocket.send_json({
+                                    "type": "HISTORY", "data": candles, 
+                                    "symbol": current_symbol, "timeframe": current_timeframe
+                                })
                             else:
-                                ts = int(raw_time)
-                            
-                            candles.append({
-                                "time": ts,
-                                "open": row['open'], "high": row['high'],
-                                "low": row['low'], "close": row['close']
-                            })
-                        await websocket.send_json({"type": "HISTORY", "data": candles, "symbol": current_symbol})
+                                await websocket.send_json({"type": "ERROR", "message": "No Data"})
 
             except asyncio.TimeoutError:
-                pass 
+                pass # Hết 0.5s mà không có lệnh switch thì chạy tiếp xuống phần Update giá
+            except WebSocketDisconnect:
+                print("⚠️ Client disconnected during receive")
+                break # Thoát vòng lặp ngay
 
-            # 2. Gửi giá Realtime
-            #price = mt5_service.get_price(current_symbol)
-            tick = mt5.symbol_info_tick(current_symbol)
-            if tick:
-                price = tick.last
-                ts = int(tick.time)
-                await websocket.send_json({
-                    "type": "UPDATE", 
-                    "candle": {"time": ts, "close": price}, 
-                    "symbol": current_symbol
-                })
-            
-            await asyncio.sleep(0.5)
+            # 2. GỬI GIÁ REALTIME (TICK UPDATE)
+            if scanner_instance:
+                try:
+                    # Kiểm tra kết nối lần nữa trước khi gửi tick
+                    if websocket.client_state == WebSocketState.DISCONNECTED: break
 
-    except WebSocketDisconnect:
-        print("Client disconnected chart")
+                    tick = mt5.symbol_info_tick(current_symbol)
+                    if tick:
+                        price = tick.last
+                        ts = int(tick.time)
+                        await websocket.send_json({
+                            "type": "UPDATE", 
+                            "candle": {"time": ts, "close": price}, 
+                            "symbol": current_symbol
+                        })
+                except (WebSocketDisconnect, RuntimeError):
+                    print("⚠️ Client disconnected during send")
+                    break # Thoát vòng lặp
+                except Exception as e:
+                    pass # Lỗi lặt vặt khi gửi tick thì bỏ qua, không crash app
+
     except Exception as e:
-        # In lỗi chi tiết ra để debug nếu còn lỗi khác
-        import traceback
-        traceback.print_exc()
+        print(f"❌ WS Critical Error: {e}")
+    finally:
+        print("🔌 WebSocket Closed cleanly")
 
