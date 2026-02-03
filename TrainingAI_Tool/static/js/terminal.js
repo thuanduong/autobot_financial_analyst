@@ -70,6 +70,13 @@ const TerminalApp = {
         if (msg.type === "HISTORY") {
             const sorted = msg.data.sort((a,b) => a.time - b.time);
             this.series.setData(sorted);
+            
+            if (msg.markers) {
+                this.series.setMarkers(msg.markers);
+            } else {
+                this.series.setMarkers([]); // Xóa cũ nếu không có mới
+            }
+
             if(sorted.length > 0) {
                 this.updatePriceDisplay(sorted[sorted.length-1].close);
                 this.lastCandleTime = sorted[sorted.length-1].time;

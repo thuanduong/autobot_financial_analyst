@@ -7,7 +7,10 @@ from database.chart_repo import ChartRepo
 from core.user.portfolio import PortfolioManager
 from core.data_provider.mt5_provider import MT5Provider # Import MT5
 from core.engine.scanner import MarketScanner
+from core.engine.technical import TechnicalAnalyzer
+
 from pydantic import BaseModel
+import pandas as pd
 import json
 import asyncio
 import time
@@ -229,6 +232,22 @@ def get_user_stats(username: str):
         "active_count": len(active_orders)
     }
 
+
+"""Chuyển mọi thể loại thời gian về Unix Timestamp (Seconds)"""
+def safe_convert_time(val):
+    try:
+        if isinstance(val, (int, float)):
+            if val > 1000000000000: 
+                return int(val // 10**9)
+            return int(val)
+        
+        if hasattr(val, 'timestamp'):
+            return int(val.timestamp())
+        
+        return int(pd.to_datetime(val).timestamp())
+    except:
+        return 0
+    
 # --- API WEBSOCKET: CHART STREAMING ---
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -265,18 +284,33 @@ async def websocket_endpoint(websocket: WebSocket):
                         # C. Gửi Data (Kiểm tra kết nối trước khi gửi)
                         if websocket.client_state == WebSocketState.CONNECTED:
                             if df is not None and not df.empty:
+                                markers = TechnicalAnalyzer.analyze_history(df)
                                 candles = []
-                                for _, row in df.iterrows():
-                                    raw_time = row['time']
-                                    ts = int(raw_time.timestamp()) if hasattr(raw_time, 'timestamp') else int(raw_time)
+                                records = df.to_dict('records')
+                                                                
+                                # for _, row in df.iterrows():
+                                #     #raw_time = row['time']
+                                #     #ts = int(raw_time.timestamp()) if hasattr(raw_time, 'timestamp') else int(raw_time)
+                                #     candles.append({
+                                #         "time": int(row['time']),#ts, 
+                                #         "open": row['open'], "high": row['high'], 
+                                #         "low": row['low'], "close": row['close']
+                                #     })
+                                
+                                for row in records:
+                                    ts = safe_convert_time(row['time'])
                                     candles.append({
-                                        "time": ts, 
-                                        "open": row['open'], "high": row['high'], 
-                                        "low": row['low'], "close": row['close']
+                                        "time": ts,
+                                        "open": row['open'], 
+                                        "high": row['high'], 
+                                        "low": row['low'], 
+                                        "close": row['close']
                                     })
+
                                 
                                 await websocket.send_json({
                                     "type": "HISTORY", "data": candles, 
+                                    "markers": markers,
                                     "symbol": current_symbol, "timeframe": current_timeframe
                                 })
                             else:
