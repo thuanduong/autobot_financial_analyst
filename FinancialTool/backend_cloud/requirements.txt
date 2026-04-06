@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+jinja2
+python-multipart
+websockets
+requests
+pandas
+numpy
+ta
+MetaTrader5
+yfinance
+ccxt
+oandapyV20
+sqlalchemy

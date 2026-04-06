@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Trading Terminal</title>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        body { background: #121212; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; margin:0; overflow: hidden;}
+        
+        /* Sidebar */
+        #sidebar { width: 320px; padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; gap: 15px; background: #1a1a1a; overflow-y: auto;}
+        
+        /* Chart Area */
+        #chart-container { flex-grow: 1; position: relative; }
+        
+        /* Components */
+        .stat-box { background: #252525; padding: 12px; border-radius: 6px; border: 1px solid #333; }
+        .stat-label { font-size: 12px; color: #888; margin-bottom: 4px; display: block; }
+        .stat-val { font-size: 16px; font-weight: bold; color: #eee; }
+        
+        input, select { width: 100%; padding: 8px; background: #333; color: white; border: 1px solid #444; border-radius: 4px; box-sizing: border-box; }
+        
+        /* Buttons */
+        .btn { width: 100%; padding: 10px; border: none; cursor: pointer; color: white; font-weight: bold; border-radius: 4px; margin-top: 5px; transition: 0.2s; }
+        .btn-buy { background: #00897b; } .btn-buy:hover { background: #00796b; }
+        .btn-sell { background: #e53935; } .btn-sell:hover { background: #d32f2f; }
+
+        /* Timeframe Toolbar */
+        .tf-container { display: flex; gap: 4px; margin-bottom: 5px; }
+        .btn-tf { flex: 1; background: #2a2a2a; color: #888; border: 1px solid #333; padding: 6px 0; cursor: pointer; font-size: 12px; border-radius: 4px; }
+        .btn-tf:hover { background: #333; color: #ccc; }
+        .btn-tf.active { background: #2962FF; color: white; border-color: #2962FF; font-weight: bold; }
+        
+        /* Loading Overlay */
+        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #666; font-size: 20px; display: none; }
+
+        .pos-item {
+            background: #333;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 13px;
+            border-left: 3px solid #666;
+        }
+        .pos-item.buy { border-left-color: #26a69a; }
+        .pos-item.sell { border-left-color: #ef5350; }
+
+        .btn-close {
+            background: #555;
+            color: white;
+            border: none;
+            padding: 2px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 3px;
+            float: right;
+        }
+        .btn-close:hover { background: #888; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2 style="margin:0; color:#2962FF;">🤖 AutoBot Cloud</h2>
+        
+        <div class="stat-box">
+            <span class="stat-label">User Account</span>
+            <div id="ui-username" style="font-weight:bold; margin-bottom:5px;">Loading...</div>
+            <div style="display:flex; justify-content:space-between;">
+                <span>Balance:</span>
+                <span id="ui-balance" style="color:#4caf50">--- $</span>
+            </div>
+        </div>
+
+        <div class="stat-box">
+            <span class="stat-label">Symbol</span>
+            <input type="text" id="inp-symbol" value="XAUUSD.sml" onchange="loadHistory()">
+            
+            <span class="stat-label" style="margin-top:10px;">Timeframe</span>
+            <div class="tf-container">
+                <button class="btn-tf" onclick="selectTF(this, 'M1')">M1</button>
+                <button class="btn-tf active" onclick="selectTF(this, 'M5')">M5</button>
+                <button class="btn-tf" onclick="selectTF(this, 'M15')">M15</button>
+                <button class="btn-tf" onclick="selectTF(this, 'H1')">H1</button>
+                <button class="btn-tf" onclick="selectTF(this, 'H4')">H4</button>
+            </div>
+        </div>
+
+        <div class="stat-box">
+            <span class="stat-label">Bot Performance</span>
+            <div id="bot-list" style="font-size: 13px; margin-top:5px;">
+                Loading bots...
+            </div>
+        </div>
+
+        <div class="stat-box">
+            <span class="stat-label">Manual Paper Trade</span>
+            <input type="number" id="inp-vol" value="0.1" step="0.01" style="margin-bottom:5px;">
+            <div style="display:flex; gap:5px;">
+                <button class="btn btn-buy" onclick="trade('BUY')">BUY</button>
+                <button class="btn btn-sell" onclick="trade('SELL')">SELL</button>
+            </div>
+            <div class="stat-box" style="margin-top: 15px; flex-grow: 1; overflow-y: auto;">
+                <span class="stat-label">Active Positions</span>
+                <div id="position-list">
+                    <div style="font-size:12px; color:#666; text-align:center;">No active trades</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="chart-container">
+        <div id="loading">Loading Data...</div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
