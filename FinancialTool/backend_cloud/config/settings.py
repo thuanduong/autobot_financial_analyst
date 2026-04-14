@@ -1,15 +1,27 @@
-# Cấu hình Hậu tố (Suffix) theo sàn giao dịch:
-# - Exness Standard: "m" (VD: EURUSDm)
-# - Exness Pro: "" (Không có suffix)
-# - Oanda: ".sml" hoặc ".pro"
-SYMBOL_SUFFIX = ".sml" 
+import os
 
-# Danh sách mã gốc muốn giao dịch
-_BASE_WATCHLIST = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "BTCUSD"]
+# 1. Xác định Broker đang chạy (mặc định là exness nếu không có tham số)
+ACTIVE_BROKER = os.getenv("TRADING_BROKER", "exness").lower()
 
-# Tự động tạo WATCHLIST dựa trên hậu tố của sàn
-# Lưu ý: Một số mã như BTCUSD có thể không có suffix tùy sàn, bạn có thể chỉnh sửa logic list comprehension nếu cần
-WATCHLIST = [f"{s}{SYMBOL_SUFFIX}" if s != "BTCUSD" else s for s in _BASE_WATCHLIST]
+# 2. Định nghĩa cấu hình chi tiết cho từng Broker
+BROKER_CONFIGS = {
+    "exness": {
+        "suffix": "m",  # Exness Standard
+        "watchlist": ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "BTCUSD"]
+    },
+    "oanda": {
+        "suffix": ".sml", 
+        "watchlist": ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "BTCUSD"]
+    }
+}
+
+# Lấy cấu hình dựa trên broker được chọn
+config = BROKER_CONFIGS.get(ACTIVE_BROKER, BROKER_CONFIGS["exness"])
+
+SYMBOL_SUFFIX = config["suffix"]
+_BASE_WATCHLIST = config["watchlist"]
+
+WATCHLIST = [f"{s}{SYMBOL_SUFFIX}" if s not in ["BTCUSD", "ETHUSD"] else s for s in _BASE_WATCHLIST]
 
 TIMEFRAMES = {
     "Micro": ["M1", "M5", "M15"], 

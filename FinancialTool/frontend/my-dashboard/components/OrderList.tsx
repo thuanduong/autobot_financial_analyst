@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { tradeApi } from "@/services/tradeApi";
 import { getSymbolLabel } from "@/config/symbols";
+import { useSocket } from "@/app/context/SocketContext";
 import { formatDateTime } from "@/utils/timeHelper";
 
 // --- INTERFACES ---
@@ -40,6 +41,7 @@ interface Props {
 
 export const OrderList = ({ refreshTrigger, symbol, tf }: Props) => {
   const { token } = useAuth();
+  const { subscribe, unsubscribe } = useSocket();
   
   const [activeTab, setActiveTab] = useState<'MANUAL' | 'BOT'>('BOT');
   const [orders, setOrders] = useState<Order[]>([]);
@@ -88,6 +90,36 @@ export const OrderList = ({ refreshTrigger, symbol, tf }: Props) => {
     fetchManualOrders();
     fetchBotHistory(1);
   }, [token, refreshTrigger, symbol, tf]);
+
+  // 3. Lắng nghe Socket SIGNAL_UPDATE để cập nhật lịch sử Bot tại Runtime
+  useEffect(() => {
+    const handleSignalUpdate = (msg: any) => {
+      // Chỉ xử lý nếu tín hiệu khớp với Symbol và Timeframe đang chọn
+      if (msg.symbol !== symbol || msg.tf !== tf) return;
+
+      const updatedSignal = msg.data;
+
+      setBotOrders((prev) => {
+        // Kiểm tra xem lệnh này đã tồn tại (dựa trên timestamp và strategy_id) để cập nhật hay thêm mới
+        const existingIndex = prev.findIndex(
+          (o) => o.time === updatedSignal.time && o.strategy_id === updatedSignal.strategy_id
+        );
+
+        if (existingIndex !== -1) {
+          // Cập nhật trạng thái lệnh cũ (Ví dụ: PENDING -> WIN/LOSS)
+          const newOrders = [...prev];
+          newOrders[existingIndex] = { ...newOrders[existingIndex], ...updatedSignal };
+          return newOrders;
+        } else {
+          // Thêm lệnh mới bóp cò vào đầu danh sách
+          return [{ ...updatedSignal, symbol }, ...prev];
+        }
+      });
+    };
+
+    subscribe("SIGNAL_UPDATE", handleSignalUpdate);
+    return () => unsubscribe("SIGNAL_UPDATE", handleSignalUpdate);
+  }, [symbol, tf, subscribe, unsubscribe]);
 
   // Đóng lệnh thủ công
   const handleCloseOrder = async (orderId: number) => {

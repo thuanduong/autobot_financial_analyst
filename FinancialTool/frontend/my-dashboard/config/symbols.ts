@@ -7,38 +7,36 @@ export interface SymbolDisplayInfo {
   short: string;
 }
 
-export const SYMBOL_MAP: Record<string, SymbolDisplayInfo> = {
-  "XAUUSD.sml": {
-    label: "XAU/USD",
-    fullName: "Gold vs US Dollar",
-    category: "Metal",
-    short: "XAUUSD",
-  },
-  "EURUSD.sml": {
-    label: "EUR/USD",
-    fullName: "Euro vs US Dollar",
-    category: "Forex",
-    short: "EURUSD",
-  },
-  "GBPUSD.sml": {
-    label: "GBP/USD",
-    fullName: "Pound vs US Dollar",
-    category: "Forex",
-    short: "GBPUSD",
-  },
-  "USDJPY.sml": {
-    label: "USD/JPY",
-    fullName: "US Dollar vs Japan Yen",
-    category: "Forex",
-    short: "USDJPY",
-  },
-  "BTCUSD": {
-    label: "BTC/USD",
-    fullName: "Bitcoin",
-    category: "Crypto",
-    short: "BTCUSD",
-  },
-};
+// 1. Lấy thông tin Broker từ biến môi trường (Mặc định là exness nếu không có)
+// Lưu ý: Trong Next.js biến phải bắt đầu bằng NEXT_PUBLIC_ để browser có thể đọc được
+const ACTIVE_BROKER = process.env.NEXT_PUBLIC_BROKER || "exness";
+const SUFFIX = ACTIVE_BROKER === "oanda" ? ".sml" : "m";
+
+// 2. Danh sách Metadata gốc (Không chứa suffix)
+const BASE_SYMBOLS = [
+  { id: "XAUUSD", label: "XAU/USD", fullName: "Gold vs US Dollar", category: "Metal" },
+  { id: "EURUSD", label: "EUR/USD", fullName: "Euro vs US Dollar", category: "Forex" },
+  { id: "GBPUSD", label: "GBP/USD", fullName: "Pound vs US Dollar", category: "Forex" },
+  { id: "USDJPY", label: "USD/JPY", fullName: "US Dollar vs Japan Yen", category: "Forex" },
+  { id: "BTCUSD", label: "BTC/USD", fullName: "Bitcoin", category: "Crypto" },
+];
+
+// 3. Tự động tạo SYMBOL_MAP dựa trên Suffix của sàn đang chạy
+export const SYMBOL_MAP: Record<string, SymbolDisplayInfo> = {};
+
+BASE_SYMBOLS.forEach(item => {
+  // Logic mirror với Backend: BTC/ETH thường không có suffix
+  const rawKey = (item.id === "BTCUSD" || item.id === "ETHUSD") 
+    ? item.id 
+    : `${item.id}${SUFFIX}`;
+
+  SYMBOL_MAP[rawKey] = {
+    label: item.label,
+    fullName: item.fullName,
+    category: item.category,
+    short: item.id
+  };
+});
 
 export const getSymbolLabel = (rawSymbol: string): string => {
   return SYMBOL_MAP[rawSymbol]?.label || rawSymbol;

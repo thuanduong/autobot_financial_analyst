@@ -1,5 +1,21 @@
 import asyncio
 import threading
+import sys
+import os
+
+# ==========================================================
+# XỬ LÝ CONFIG THEO CLI FLAGS (-oanda, -exness)
+# Phải thực hiện TRƯỚC khi import các module khác của app
+# ==========================================================
+broker_choice = "exness" # Mặc định
+if "-oanda" in sys.argv:
+    broker_choice = "oanda"
+elif "-exness" in sys.argv:
+    broker_choice = "exness"
+
+os.environ["TRADING_BROKER"] = broker_choice
+print(f"🔧 [CONFIG] System is running for broker: {broker_choice.upper()}")
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
