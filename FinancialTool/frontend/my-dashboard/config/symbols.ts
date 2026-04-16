@@ -9,7 +9,7 @@ export interface SymbolDisplayInfo {
 
 // 1. Lấy thông tin Broker từ biến môi trường (Mặc định là exness nếu không có)
 // Lưu ý: Trong Next.js biến phải bắt đầu bằng NEXT_PUBLIC_ để browser có thể đọc được
-const ACTIVE_BROKER = process.env.NEXT_PUBLIC_BROKER || "exness";
+const ACTIVE_BROKER = process.env.TARGET_BROKER || "exness";
 const SUFFIX = ACTIVE_BROKER === "oanda" ? ".sml" : "m";
 
 // 2. Danh sách Metadata gốc (Không chứa suffix)

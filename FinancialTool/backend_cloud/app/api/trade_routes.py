@@ -13,6 +13,12 @@ from backend_cloud.app.services.live_price import get_live_execution_price
 from backend_cloud.app.core.utils import resolve_broker_symbol, clean_symbol_for_client
 from backend_cloud.app.api.websocket import ws_manager
 from backend_cloud.app.core.globals import global_analyze
+# Import mt5 để tránh lỗi NameError trong các hàm history
+try:
+    import MetaTrader5 as mt5
+except ImportError:
+    mt5 = None
+
 from backend_cloud.app.database.analyze_models import SignalHistory
 
 logger = logging.getLogger(__name__)
@@ -43,7 +49,7 @@ async def place_order(
     try:
         live_price_float = get_live_execution_price(broker_symbol, order_in.order_type)
         current_price = Decimal(str(live_price_float))
-    except Exception:
+    except Exception as e:
         raise HTTPException(status_code=503, detail=f"Báo giá thất bại: {str(e)}")
 
     # 3. Tính toán Ký quỹ (Margin) theo công thức MT5
@@ -265,8 +271,9 @@ def edit_symbol(
     current_user: User = Depends(get_current_user)
 ):
     """Cập nhật cấu hình của một mã giao dịch (Contract Size, Leverage...)"""
-    broker_symbol = resolve_broker_symbol(symbol_id)
-    symbol = db.query(SymbolConfig).filter(SymbolConfig.id == broker_symbol, SymbolConfig.user_id == current_user.id).first()
+    # symbol_id truyền từ Frontend là ID (Primary Key) của bản ghi, không cần resolve broker name
+    symbol = db.query(SymbolConfig).filter(SymbolConfig.id == symbol_id, SymbolConfig.user_id == current_user.id).first()
+    
     if not symbol:
         raise HTTPException(status_code=404, detail="Không tìm thấy cấu hình của mã này.")
 
@@ -294,8 +301,8 @@ def delete_symbol(
     current_user: User = Depends(get_current_user)
 ):
     """Xóa hoàn toàn một mã giao dịch khỏi hệ thống"""
-    broker_symbol = resolve_broker_symbol(symbol_id)
-    symbol = db.query(SymbolConfig).filter(SymbolConfig.id == broker_symbol, SymbolConfig.user_id == current_user.id).first()
+    # Query trực tiếp bằng ID thay vì dùng broker_symbol (vốn là string) để so khớp với ID (int)
+    symbol = db.query(SymbolConfig).filter(SymbolConfig.id == symbol_id, SymbolConfig.user_id == current_user.id).first()
     if not symbol:
         raise HTTPException(status_code=404, detail="Không tìm thấy cấu hình của mã này.")
 
@@ -443,8 +450,8 @@ async def close_user_order(
 @router.get("/orders/history")
 async def get_manual_order_history(days: int = 7):
     """Lấy lịch sử các lệnh thủ công đã chốt trong X ngày qua"""
-    if not mt5.terminal_info():
-        raise HTTPException(status_code=500, detail="MT5 chưa kết nối")
+    if mt5 is None or not mt5.terminal_info():
+        raise HTTPException(status_code=500, detail="Thư viện MT5 chưa sẵn sàng hoặc chưa kết nối")
 
     # Lấy từ 7 ngày trước đến hiện tại
     from_date = datetime.now() - timedelta(days=days)
