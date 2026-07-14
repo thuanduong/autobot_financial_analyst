@@ -43,18 +43,21 @@ async def websocket_endpoint(websocket: WebSocket, current_user: User = Depends(
     Endpoint xử lý kết nối WebSocket.
     Lưu ý: Không kiểm tra User trong DB để tránh lỗi 403 với 'demo_user'.
     """
-    client_id = str(current_user.id)
-    await ws_manager.connect(websocket, client_id)
-    
     try:
+        client_id = str(current_user.id)
+        await ws_manager.connect(websocket, client_id)
+        
         while True:
-            data = await websocket.receive_text()
+            # Lắng nghe tin nhắn từ client (như ping/pong) để giữ connection
+            await websocket.receive_text()
 
     except WebSocketDisconnect:
-        await ws_manager.disconnect(websocket, client_id)
+        if 'client_id' in locals():
+            await ws_manager.disconnect(websocket, client_id)
     except Exception as e:
-        print(f"WebSocket Error: {e}")
-        await ws_manager.disconnect(websocket, client_id)
+        print(f"📡 WebSocket Connection Error for User {current_user.id}: {e}")
+        if 'client_id' in locals():
+            await ws_manager.disconnect(websocket, client_id)
 
 
 # API 1: Load mặc định khi mở trang (Lấy 200-500 nến)

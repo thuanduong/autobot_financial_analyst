@@ -21,12 +21,26 @@ export const SymbolConfigPopup = ({ isOpen, onClose }: Props) => {
   const { token } = useAuth();
   const [symbols, setSymbols] = useState<SymbolData[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // State cho Global Settings (Sound)
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [volume, setVolume] = useState(0.5);
   
   // State cho Form thêm mới
   const [newSymbol, setNewSymbol] = useState("");
   const [newSize, setNewSize] = useState(100);
   const [newLeverage, setNewLeverage] = useState(500);
   const [msg, setMsg] = useState("");
+
+  // Load settings âm thanh từ localStorage khi mở popup
+  useEffect(() => {
+    if (isOpen) {
+      const s = localStorage.getItem("trading_sound_enabled");
+      const v = localStorage.getItem("trading_sound_volume");
+      if (s !== null) setSoundEnabled(s === "true");
+      if (v !== null) setVolume(parseFloat(v));
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && token) {
@@ -165,6 +179,42 @@ export const SymbolConfigPopup = ({ isOpen, onClose }: Props) => {
             </table>
           </div>
         )}
+
+        {/* Cài đặt âm thanh */}
+        <div className="mt-8 pt-6 border-t border-slate-700">
+          <h3 className="text-sm font-bold text-slate-300 mb-4 uppercase tracking-wider">Cài đặt hệ thống</h3>
+          <div className="flex flex-col md:flex-row gap-8 items-start md:items-center bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+            <div className="flex items-center gap-3">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" checked={soundEnabled} 
+                  onChange={(e) => {
+                    setSoundEnabled(e.target.checked);
+                    localStorage.setItem("trading_sound_enabled", String(e.target.checked));
+                  }} 
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+              <span className="text-sm font-medium text-slate-300">Âm báo tín hiệu mới</span>
+            </div>
+            
+            <div className="flex-1 w-full max-w-xs">
+              <div className="flex justify-between mb-1">
+                <span className="text-xs text-slate-400">Âm lượng</span>
+                <span className="text-xs font-mono text-blue-400">{Math.round(volume * 100)}%</span>
+              </div>
+              <input 
+                type="range" min="0" max="1" step="0.1" value={volume} 
+                onChange={(e) => {
+                  setVolume(parseFloat(e.target.value));
+                  localStorage.setItem("trading_sound_volume", e.target.value);
+                }}
+                className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              />
+            </div>
+          </div>
+        </div>
 
         {/* Footer */}
         <div className="mt-6 flex justify-end">

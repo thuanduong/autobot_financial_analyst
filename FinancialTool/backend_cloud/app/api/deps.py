@@ -38,6 +38,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 async def get_current_user_ws(token: str = Query(...), db: Session = Depends(get_db)) -> User:
     """Chốt chặn cho kết nối WebSocket (Lấy token từ Query Parameter)"""
     try:
+        if not token or token == "null" or token == "undefined":
+            print("⚠️ WebSocket Auth: Token is null or undefined string")
+            raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+            
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:

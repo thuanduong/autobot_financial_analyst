@@ -1,5 +1,5 @@
 // src/services/tradeApi.ts
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
 export const tradeApi = {
   async placeOrder(token: string, symbol: string, orderType: "BUY" | "SELL", volume: number) {

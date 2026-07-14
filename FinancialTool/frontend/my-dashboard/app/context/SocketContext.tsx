@@ -14,7 +14,7 @@ interface SocketContextType {
 
 const SocketContext = createContext<SocketContextType | null>(null);
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8001";
 
 export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const [isConnected, setIsConnected] = useState(false);
@@ -28,7 +28,6 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     const connect = () => {
       const token = localStorage.getItem("access_token");
 
-      // Demo user ID, thực tế lấy từ Auth Context
       ws.current = new WebSocket(`${WS_URL}/ws/market?token=${token}`);
 
       ws.current.onopen = () => {

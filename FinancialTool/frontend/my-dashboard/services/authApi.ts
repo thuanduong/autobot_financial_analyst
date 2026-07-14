@@ -1,6 +1,6 @@
 // src/services/authApi.ts
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
 export const authApi = {
   async login(email: string, password: string) {
@@ -14,6 +14,7 @@ export const authApi = {
       const error = await res.json();
       throw new Error(error.detail || "Đăng nhập thất bại");
     }
+    //console.log('login result', res.json());
     return res.json(); // Trả về { access_token, token_type }
   },
 

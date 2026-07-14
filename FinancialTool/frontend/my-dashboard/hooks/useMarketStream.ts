@@ -13,10 +13,56 @@ const TF_TO_SECONDS: Record<string, number> = {
 export const useMarketData = (symbol: string, tf: string) => {
   const [data, setData] = useState<Candle[]>([]);
   const [markers, setChartMarkers] = useState<Marker[]>([]);
+
+  // --- SETTINGS ÂM THANH ---
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [volume, setVolume] = useState(0.5);
+
+  // Dùng Ref để callback socket luôn lấy được volume mới nhất mà không cần re-subscribe
+  const settingsRef = useRef({ soundEnabled, volume });
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const savedSound = localStorage.getItem("trading_sound_enabled");
+    const savedVolume = localStorage.getItem("trading_sound_volume");
+    if (savedSound !== null) setSoundEnabled(savedSound === "true");
+    if (savedVolume !== null) setVolume(parseFloat(savedVolume));
+  }, []);
+
+  // Khởi tạo Audio một lần duy nhất khi mount để "giữ chỗ" trong hệ thống âm thanh của trình duyệt
+  useEffect(() => {
+    const audio = new Audio("/sounds/signal-alert.mp3");
+    audio.preload = "auto";
+    audioRef.current = audio;
+  }, []);
+
+  useEffect(() => {
+    settingsRef.current = { soundEnabled, volume };
+  }, [soundEnabled, volume]);
+
+  const playSignalSound = useCallback(() => {
+    if (!settingsRef.current.soundEnabled || !audioRef.current) return;
+    
+    try {
+      const audio = audioRef.current;
+      audio.volume = settingsRef.current.volume;
+      
+      // Đưa thời gian về 0 để có thể phát lại ngay lập tức nếu có nhiều tín hiệu dồn dập
+      audio.currentTime = 0;
+      
+      // Phát âm thanh và bắt lỗi (trình duyệt có thể chặn nếu chưa có tương tác người dùng)
+      audio.play().catch((err) => {
+        console.warn("Background audio play was prevented by browser policy:", err);
+      });
+    } catch (e) {
+      console.warn("Audio play failed", e);
+    }
+  }, []); // Dependencies trống để giữ function reference ổn định
+
   const { isConnected, subscribe, unsubscribe } = useSocket(); // Lấy hàm từ Core
   
   // Dùng Ref để lưu context hiện tại cho callback
-  const contextRef = useRef({ symbol, tf });
+  const contextRef = useRef({ symbol, tf, playSignalSound });
   const isFetchingRef = useRef(false);
   
   // CHỐT CHẶN: Đảm bảo marker không bao giờ vượt quá cây nến cũ nhất (tránh tràn/hiển thị sai)
@@ -35,7 +81,7 @@ export const useMarketData = (symbol: string, tf: string) => {
 
   // 1. Load History (HTTP) khi đổi cặp tiền
   useEffect(() => {
-    contextRef.current = { symbol, tf };
+    contextRef.current = { ...contextRef.current, symbol, tf };
     setData([]); 
     isFetchingRef.current = false;
 
@@ -119,9 +165,12 @@ export const useMarketData = (symbol: string, tf: string) => {
     };
 
     const handleSignalUpdate = (msg: any) => {
-      
       if (msg.symbol === contextRef.current.symbol && msg.tf === contextRef.current.tf) {
-                
+        // Phát âm thanh nếu là tín hiệu mới (Mới bóp cò - PENDING)
+        if (msg.data.outcome === 'PENDING') {
+          contextRef.current.playSignalSound();
+        }
+
         const newMarker = formatTradeMarker(msg.data);
 
         setChartMarkers(prev => {
@@ -137,7 +186,11 @@ export const useMarketData = (symbol: string, tf: string) => {
     subscribe("PRICE_UPDATE", handlePriceUpdate);
     subscribe("SIGNAL_UPDATE", handleSignalUpdate);
 
-    // Hủy đăng ký (Unsubscribe) khi unmount
+    // Theo dõi trạng thái kết nối
+    if (!isConnected) {
+      console.warn("WebSocket disconnected. Checking authentication...");
+    }
+
     return () => {
       unsubscribe("PRICE_UPDATE", handlePriceUpdate);
       unsubscribe("SIGNAL_UPDATE", handleSignalUpdate);
@@ -191,7 +244,24 @@ export const useMarketData = (symbol: string, tf: string) => {
     }
   }, [data, symbol, tf]);
 
-  return { data, markers, isConnected, loadMoreHistory };
+  // Hàm cập nhật có persistence
+  const updateSoundEnabled = (val: boolean) => {
+    setSoundEnabled(val);
+    localStorage.setItem("trading_sound_enabled", String(val));
+  };
+  const updateVolume = (val: number) => {
+    setVolume(val);
+    localStorage.setItem("trading_sound_volume", String(val));
+  };
+
+  return { 
+    data, 
+    markers, 
+    isConnected, 
+    loadMoreHistory,
+    soundEnabled, setSoundEnabled: updateSoundEnabled,
+    volume, setVolume: updateVolume
+  };
 };
 
 export const formatTradeMarker = (msg: any): Marker => {

@@ -9,7 +9,7 @@ from backend_cloud.app.api.deps import get_current_user
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 @router.post("/register", response_model=TokenResponse)
-def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
+async def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
     """Đăng ký tài khoản mới và cấp ngay 10,000$ tiền ảo"""
     
     # 1. Kiểm tra email đã tồn tại chưa
@@ -48,9 +48,9 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login_user(user_in: UserLogin, db: Session = Depends(get_db)):
+async def login_user(user_in: UserLogin, db: Session = Depends(get_db)):
     """Đăng nhập và nhận JWT Token"""
-    
+    print("login_user")
     # 1. Tìm User theo email
     user = db.query(User).filter(User.email == user_in.email).first()
     
@@ -63,4 +63,14 @@ def login_user(user_in: UserLogin, db: Session = Depends(get_db)):
 
     # 3. Tạo Token
     access_token = create_access_token(data={"sub": str(user.id)})
+    print(access_token)
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/me")
+def get_me(current_user: User = Depends(get_current_user)):
+    """Endpoint kiểm tra token còn hiệu lực hay không"""
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "status": "active"
+    }

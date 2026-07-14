@@ -74,20 +74,28 @@ class MarketScanner:
         return True
 
     async def initial_backfill(self):
-        if not mt5_feed.connect(): return
+        # Kết nối MT5 trong một thread riêng để tránh block startup
+        connected = await asyncio.to_thread(mt5_feed.connect)
+        if not connected:
+            print("❌ Scanner: Không thể kết nối MT5 để Backfill")
+            return
+            
         print("🔄 Đang tải dữ liệu lịch sử...")
         
         for tf in TIMEFRAMES["Watch"]:
             limit = MAX_CANDLES_CONFIG.get(tf, 5000)
             for symbol in WATCHLIST:
                 try:
-                    df = mt5_feed.get_candles(symbol, timeframe=tf, n=limit)
+                    df = await asyncio.to_thread(mt5_feed.get_candles, symbol, timeframe=tf, n=limit)
                     if df is not None and not df.empty:
-                        self.repo.save_bulk_data(symbol, df, timeframe=tf, max_records=limit)
+                        # Đưa việc lưu DB vào thread riêng
+                        await asyncio.to_thread(self.repo.save_bulk_data, symbol, df, timeframe=tf, max_records=limit)
+                        
                         # Đánh dấu đã scan xong
                         self._update_last_candle_time(symbol, tf, df)
-
-                        market_buffer.init_buffer(symbol, tf, df)
+                        
+                        # Buffer cũng cần thread-safe nếu dữ liệu lớn
+                        await asyncio.to_thread(market_buffer.init_buffer, symbol, tf, df)
                 except Exception as e:
                     print(f"❌ Lỗi Init Backfill {symbol} {tf}: {e}")
         print("✅ Đã lấp đầy Database!")
@@ -100,14 +108,14 @@ class MarketScanner:
             for symbol in WATCHLIST:
                 try:
                     n_fetch = self._get_n_fetch(symbol, tf, max_n=100)
-                    df = mt5_feed.get_candles(symbol, timeframe=tf, n=n_fetch)
+                    df = await asyncio.to_thread(mt5_feed.get_candles, symbol, timeframe=tf, n=n_fetch)
                     #print(f"get {symbol} ")
                     if df is None or df.empty: continue
 
                     # BƯỚC B: GHI VÀO DATABASE BẰNG SQL THUẦN
-                    self.repo.save_bulk_data(symbol, df, timeframe=tf, max_records=limit)
+                    await asyncio.to_thread(self.repo.save_bulk_data, symbol, df, timeframe=tf, max_records=limit)
                     self._update_last_candle_time(symbol, tf, df)
-                    market_buffer.update_from_df(symbol, tf, df)
+                    await asyncio.to_thread(market_buffer.update_from_df, symbol, tf, df)
 
                     if len(df) >= 2:
                         last_2_candles = df.iloc[-2:].copy()
